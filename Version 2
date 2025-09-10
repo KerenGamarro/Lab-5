@@ -1,0 +1,89 @@
+#include <Arduino.h>
+#include <LiquidCrystal.h>
+
+// ==== Pines LCD en modo 8 bits ====
+#define rs 15
+#define en 2
+#define d0 4
+#define d1 16   // RX2
+#define d2 17   // TX2
+#define d3 5
+#define d4 18
+#define d5 19
+#define d6 21
+#define d7 27
+
+// ==== Pines botones y potenciómetros ====
+#define btt_avance 33
+#define btt_retroceso 13
+#define pot1 32
+#define pot2 35
+#define debounceDelay 200  // ms
+
+// Inicializar LCD en modo 8 bits
+LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
+
+// Variables
+int pot1Value = 0;
+float pot2Voltage = 0;  // pot2 convertido a voltaje
+uint8_t counter = 0;    // contador de 8 bits
+
+// Variables anti-rebote
+unsigned long lastDebounceTimeUp = 0;
+unsigned long lastDebounceTimeDown = 0;
+
+void setup() {
+  lcd.begin(16, 2);
+  
+  // Mostrar encabezado inicial
+  lcd.setCursor(0, 0);
+  lcd.print("Pot1: Pot2: Cont:");
+  delay(2000);
+  lcd.clear();
+
+  // Configurar botones con pull-up
+  pinMode(btt_avance, INPUT_PULLUP);
+  pinMode(btt_retroceso, INPUT_PULLUP);
+}
+
+void loop() {
+  // === Leer potenciómetros ===
+  pot1Value = analogRead(pot1);
+  int pot2Raw = analogRead(pot2);
+
+  // Convertir Pot2 a voltaje (0-3.3V)
+  pot2Voltage = pot2Raw * 3.3 / 4095.0;
+
+  // === Botones para contador ===
+  if (digitalRead(btt_avance) == LOW && (millis() - lastDebounceTimeUp) > debounceDelay) {
+    counter++;
+    if (counter > 255) counter = 0;  // límite 8 bits
+    lastDebounceTimeUp = millis();
+  }
+
+  if (digitalRead(btt_retroceso) == LOW && (millis() - lastDebounceTimeDown) > debounceDelay) {
+    if (counter == 0) counter = 255;
+    else counter--;
+    lastDebounceTimeDown = millis();
+  }
+
+  // === Mostrar en pantalla ===
+  lcd.setCursor(0, 0);
+  lcd.print("Pot1: Pot2: Cont:");
+
+  // Limpiar línea inferior
+  lcd.setCursor(0, 1);
+  lcd.print("                "); // 16 espacios
+
+  // Mostrar valores
+  lcd.setCursor(0, 1);
+  lcd.print(pot1Value);
+
+  lcd.setCursor(6, 1);
+  lcd.print(pot2Voltage, 2);  // mostrar 2 decimales
+
+  lcd.setCursor(12, 1);
+  lcd.print(counter);
+
+  delay(200);
+}
