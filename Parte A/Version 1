@@ -1,0 +1,57 @@
+#include <Arduino.h>
+#include <LiquidCrystal.h>
+
+// Pines de la LCD
+const int rs = 34;   // RS
+const int en = 25;   // EN (debes conectarlo a un pin, no a GND)
+
+// Modo 8 bits: D0–D7
+const int d0 = 23;
+const int d1 = 22;
+const int d2 = 21;
+const int d3 = 19;
+const int d4 = 27;
+const int d5 = 14;
+const int d6 = 12;
+const int d7 = 13;
+
+// Inicializar en modo 8 bits
+LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
+
+// Potenciómetros
+const int pot1Pin = 32;
+const int pot2Pin = 35;
+
+int pot1Value = 0;
+int pot2Value = 0;
+
+void setup() {
+  // Inicializar LCD
+  lcd.begin(16, 2);
+
+  // Mostrar encabezado inicial
+  lcd.setCursor(0, 0);
+  lcd.print("Pot1: Pot2: Cont:");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  // Leer ADC (0–4095 en ESP32)
+  pot1Value = analogRead(pot1Pin);
+  pot2Value = analogRead(pot2Pin);
+
+  // Encabezado fijo
+  lcd.setCursor(0, 0);
+  lcd.print("Pot1: Pot2: Cont:");
+
+  // Valores en la segunda línea
+  lcd.setCursor(0, 1);
+  lcd.print(pot1Value);
+  lcd.setCursor(6, 1);
+  lcd.print(pot2Value);
+  lcd.setCursor(12, 1);
+  lcd.print(0); // contador en 0 (luego lo agregamos)
+
+  delay(500);
+}
