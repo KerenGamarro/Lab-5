@@ -1,0 +1,101 @@
+//Keren Gamarro 23546 Universidad del Valle de Guatemala 
+
+#include <Arduino.h>
+#include <LiquidCrystal.h>  // Librería para controlar pantallas LCD en modo 8 bits o 4 bits
+
+// ==== Pines LCD en modo 8 bits ====
+// Definimos los pines del ESP32 conectados a la pantalla LCD
+#define rs 15       // Pin RS de la LCD
+#define en 2        // Pin EN de la LCD
+#define d0 4        // Pin D0 de la LCD
+#define d1 16       // Pin D1 de la LCD (RX2)
+#define d2 17       // Pin D2 de la LCD (TX2)
+#define d3 5        // Pin D3 de la LCD
+#define d4 18       // Pin D4 de la LCD
+#define d5 19       // Pin D5 de la LCD
+#define d6 21       // Pin D6 de la LCD
+#define d7 27       // Pin D7 de la LCD
+
+// ==== Pines botones y potenciómetros ====
+// Definición de botones y entradas analógicas
+#define btt_avance 33      // Botón para incrementar contador
+#define btt_retroceso 13   // Botón para decrementar contador
+#define pot1 32            // Potenciómetro 1 conectado a adc
+#define pot2 35            // Potenciómetro 2 conectado a adc
+#define debounceDelay 200  // Tiempo de anti-rebote de botones en milisegundos
+
+// ==== Inicialización de LCD ====
+// Creamos un objeto LCD con todos los pines en modo 8 bits
+LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
+
+// ==== Variables ====
+// Valores de los potenciómetros y contador
+int pot1Value = 0;        // Valor leído de pot1 (ADC)
+float pot2Voltage = 0;    // Valor convertido a voltaje de pot2
+uint8_t counter = 0;      // Contador de 8 bits (0-255)
+
+// ==== Variables anti-rebote de botones ====
+unsigned long lastDebounceTimeUp = 0;     // Último tiempo que se pulsó el botón de avance
+unsigned long lastDebounceTimeDown = 0;   // Último tiempo que se pulsó el botón de retroceso
+
+// ==== SETUP ==== 
+void setup() {
+  lcd.begin(16, 2);  // Inicializa LCD de 16x2 caracteres
+
+  // Mostrar encabezado inicial durante 2 segundos
+  lcd.setCursor(0, 0);            // Fila 0, columna 0
+  lcd.print("Pot1: Pot2: Cont:"); // Encabezado de mediciones
+  delay(2000);
+  lcd.clear();                     // Limpiamos pantalla
+
+  // Configurar botones como entradas con resistencia pull-up interna
+  pinMode(btt_avance, INPUT_PULLUP);
+  pinMode(btt_retroceso, INPUT_PULLUP);
+}
+
+// ==== LOOP ==== 
+void loop() {
+  // === Lectura de potenciómetros ===
+  pot1Value = analogRead(pot1);  // Leer ADC de pot1 (0-4095)
+  int pot2Raw = analogRead(pot2); // Leer ADC de pot2
+
+  // Convertir Pot2 a voltaje (0-3.3 V)
+  pot2Voltage = pot2Raw * 3.3 / 4095.0;
+
+  // === Lectura de botones y control de contador ===
+  // Botón de avance
+  if (digitalRead(btt_avance) == LOW && (millis() - lastDebounceTimeUp) > debounceDelay) {
+    counter++;                  // Incrementar contador
+    if (counter > 255) counter = 0; // Limitar a 8 bits
+    lastDebounceTimeUp = millis();  // Actualizar tiempo anti-rebote
+  }
+
+  // Botón de retroceso
+  if (digitalRead(btt_retroceso) == LOW && (millis() - lastDebounceTimeDown) > debounceDelay) {
+    if (counter == 0) counter = 255; // Evitar que baje de 0
+    else counter--;                    // Decrementar contador
+    lastDebounceTimeDown = millis();  // Actualizar tiempo anti-rebote
+  }
+
+  // === Mostrar valores en pantalla ===
+  lcd.setCursor(0, 0);
+  lcd.print("Pot1: Pot2: Cont:"); // Encabezado siempre visible
+
+  // Limpiar la segunda línea antes de escribir valores
+  lcd.setCursor(0, 1);
+  lcd.print("                ");  // 16 espacios
+
+  // Mostrar valor del potenciómetro 1 (ADC)
+  lcd.setCursor(0, 1);
+  lcd.print(pot1Value);
+
+  // Mostrar valor del potenciómetro 2 como voltaje con 2 decimales
+  lcd.setCursor(6, 1);
+  lcd.print(pot2Voltage, 2);
+
+  // Mostrar valor del contador
+  lcd.setCursor(12, 1);
+  lcd.print(counter);
+
+  delay(200); // Retardo para refresco de pantalla y anti-rebote
+}
